@@ -50,7 +50,31 @@
 
         </field>
     </record>
-
+        <record id="view_partner_latan_form_inherit_hide_fields" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.hide.latin.am.fields</field>
+        <field name="model">res.partner</field>        
+        <field name="inherit_id" ref="l10n_latam_base.view_partner_latan_form"/>        
+        <field name="arch" type="xml">
+            <!-- Ocultamos el campo del tipo de identificación -->
+            <xpath expr="//field[@name='l10n_latam_identification_type_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <!-- Ocultamos el campo del número de identificación (VAT) -->
+            <xpath expr="//field[@name='vat']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>            
+            <!-- Opcional: si las etiquetas no se ocultan solas, puedes forzarlo -->
+            <!-- Descomenta las siguientes líneas si es necesario -->
+            <!--
+            <xpath expr="//label[@for='l10n_latam_identification_type_id']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            <xpath expr="//label[@for='vat']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>
+            -->
+        </field>
+    </record>
     <!-- Nuevo menú Configuración dentro de Contactos
     <menuitem 
         id="menu_contacts_config_custom" 
