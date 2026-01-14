@@ -58,15 +58,14 @@
                 <attribute name="invisible">1</attribute>
             </xpath>            
             <!-- Opcional: si las etiquetas no se ocultan solas, puedes forzarlo -->
-            <!-- Descomenta las siguientes líneas si es necesario -->
-            <!--
+            <!-- Descomenta las siguientes líneas si es necesario -->            
             <xpath expr="//label[@for='l10n_latam_identification_type_id']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
             <xpath expr="//label[@for='vat']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
-            -->
+           
         </field>
     </record>
     <!-- Nuevo menú Configuración dentro de Contactos
