@@ -25,12 +25,6 @@
             <xpath expr="//field[@name='responsability_id']" position="attributes">
                 <attribute name="string">Responsabilidad</attribute>
             </xpath-->
-            <xpath expr="//field[@name='l10n_latam_identification_id']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
-            <xpath expr="//field[@name='vat']" position="attributes">
-                <attribute name="invisible">1</attribute>
-            </xpath>
             <xpath expr="//field[@name='l10n_cl_activity_description']" position="attributes">
                 <attribute name="invisible">1</attribute>
             </xpath>
