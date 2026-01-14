@@ -65,6 +65,18 @@
            
         </field>
     </record>
+    <record id="view_partner_form_inherit_hide_fields" model="ir.ui.view">
+        <field name="name">res.partner.form.inherit.hide.fields</field>
+        <field name="model">res.partner</field>        
+        <field name="inherit_id" ref="base.view_partner_form"/>        
+        <field name="arch" type="xml">  
+            <!-- Ocultamos el campo del número de identificación (VAT) -->
+            <xpath expr="//field[@name='vat']" position="attributes">
+                <attribute name="invisible">1</attribute>
+            </xpath>            
+        </field>
+    </record>
+
     <!-- Nuevo menú Configuración dentro de Contactos
     <menuitem 
         id="menu_contacts_config_custom" 
