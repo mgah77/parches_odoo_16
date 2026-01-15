@@ -11,7 +11,7 @@
        """,
     'author' : 'M.Gah',
     'website': '',
-    'depends': ['base','l10n_cl_fe','contacts','l10n_latam_base','l10n_cl'],
+    'depends': ['base','l10n_cl_fe','contacts','l10n_latam_base','l10n_cl','base_vat'],
     'data': [
             "security/groups.xml",
             "security/ir.model.access.csv",
