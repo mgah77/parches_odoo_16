@@ -19,3 +19,4 @@ class res_partner_customer_provider(models.Model):
     invoice_line_ids = fields.One2many(readonly=False)
     line_ids = fields.One2many(readonly=False)
     sequence_number = fields.Integer(readonly=False)
+    name = fields.Char(readonly=False)
