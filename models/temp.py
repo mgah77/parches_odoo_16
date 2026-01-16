@@ -16,5 +16,5 @@ class res_partner_customer_provider(models.Model):
     invoice_date = fields.Date(readonly=False)
     sii_code = fields.Integer(readonly=False)
     sii_xml_dte = fields.Text(readonly=False)
-    invoice_line_ids = fields.One2Many(readonly=False)
-    line_ids = fields.One2Many(readonly=False)
+    invoice_line_ids = fields.One2many(readonly=False)
+    line_ids = fields.One2many(readonly=False)
