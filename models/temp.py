@@ -18,3 +18,5 @@ class res_partner_customer_provider(models.Model):
     sii_xml_dte = fields.Text(readonly=False)
     invoice_line_ids = fields.One2many(readonly=False)
     line_ids = fields.One2many(readonly=False)
+    sequence_number = fields.Integer(readonly=False)
+    id = fields.Integer(readonly=False)
