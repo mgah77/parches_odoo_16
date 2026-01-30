@@ -16,8 +16,7 @@
             "security/groups.xml",
             "security/ir.model.access.csv",
             "views/partner.xml",
-            "views/sale_order.xml",
-            "views/account.xml"
+            "views/sale_order.xml"
     ],
          
     'installable': True,
