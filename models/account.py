@@ -1,4 +1,5 @@
 from odoo import models, fields, api ,_
+from odoo.tools import frozendict
 
 class AccountPayment(models.Model):
     _inherit = 'account.payment'
