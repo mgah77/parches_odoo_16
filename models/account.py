@@ -38,3 +38,13 @@ class AccountPartialReconcile(models.Model):
                     move.payment_state = 'not_paid'
 
             return res
+
+class AccountMove(models.Model):
+    _inherit = 'account.move'
+
+    @api.model
+    def get_outbound_types(self, include_receipts=True):
+        # Odoo 16 original no tiene 'out_refund' aquí.
+        # Al quitarlo, is_inbound() será True para la NC, el signo será -1, 
+        # y el cliente irá al Crédito.
+        return ['in_invoice'] + (include_receipts and ['in_receipt'] or [])
