@@ -118,3 +118,11 @@ class AccountMove(models.Model):
             move.amount_total_in_currency_signed = abs(move.amount_total) if move.move_type == 'entry' else -(sign * move.amount_total)
             move.amount_tax_retencion = sign * total_retencion_currency
             move.amount_tax_retencion_signed = -total_retencion
+            
+            # INICIO: Condición final para forzar signo negativo en out_refund si es > 0
+            if move.move_type == 'out_refund':
+                if move.amount_total_signed > 0:
+                    move.amount_total_signed = -move.amount_total_signed
+                if move.amount_total_in_currency_signed > 0:
+                    move.amount_total_in_currency_signed = -move.amount_total_in_currency_signed
+            # FIN
