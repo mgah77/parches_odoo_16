@@ -126,6 +126,13 @@ class AccountMove(models.Model):
                     move.amount_total_signed = -move.amount_total_signed
                 if move.amount_total_in_currency_signed > 0:
                     move.amount_total_in_currency_signed = -move.amount_total_in_currency_signed
+                  
+                # 2. Forzar positivos en los campos estándar (asegurar valor absoluto)
+                move.amount_untaxed = abs(move.amount_untaxed)
+                move.amount_tax = abs(move.amount_tax)
+                move.amount_total = abs(move.amount_total)
+                move.amount_residual = abs(move.amount_residual)
+                
             # FIN
 
 
