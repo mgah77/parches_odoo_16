@@ -1,132 +1,63 @@
-from odoo import api, fields, models
-
-class stock_picking_custom_kanban(models.Model):
-    _inherit = 'stock.picking.type'
-
-    user_warehouse = fields.Integer('Current User', compute="_compute_user")
-
-    def _compute_user(self):
-        for record in self:
-            record['user_warehouse']=self.env.user.property_warehouse_id
-            return
-
-
 class StockPicking(models.Model):
     _inherit = 'stock.picking'
 
-    user_stock_location_id = fields.Many2one(
-        'stock.location',
-        compute='_compute_user_stock_location',
-        store=False
-    )
+    @api.model_create_multi
+    def create(self, vals_list):
+        scheduled_dates = []
+        for vals in vals_list:
+            defaults = self.default_get(['name', 'picking_type_id'])
+            picking_type = self.env['stock.picking.type'].browse(vals.get('picking_type_id', defaults.get('picking_type_id')))
+            if vals.get('name', '/') == '/' and defaults.get('name', '/') == '/' and vals.get('picking_type_id', defaults.get('picking_type_id')):
+                if picking_type.sequence_id:
+                    vals['name'] = picking_type.sequence_id.next_by_id()
 
+            # make sure to write `schedule_date` *after* the `stock.move` creation in
+            # order to get a determinist execution of `_set_scheduled_date`
+            scheduled_dates.append(vals.pop('scheduled_date', False))
 
-    @api.depends('picking_type_id')
-    def _compute_user_stock_location(self):
-        for record in self:
-            warehouse = self.env.user.property_warehouse_id
-            if warehouse:
-                record.user_stock_location_id = warehouse.lot_stock_id
-            else:
-                record.user_stock_location_id = False
-    
-    @api.model
-    def _get_warehouse_from_location(self, location):
-        # Busca el warehouse donde la ubicación de stock principal coincide
-        return self.env['stock.warehouse'].search([
-            ('lot_stock_id', '=', location.id)
-        ], limit=1)
+        pickings = super().create(vals_list)
 
-    def button_validate(self):
-        # Procesamos solo transferencias internas
-        internos = self.filtered(lambda p: p.picking_type_id.code == 'internal')
-        otros = self - internos
+        for picking, scheduled_date in zip(pickings, scheduled_dates):
+            if scheduled_date:
+                picking.with_context(mail_notrack=True).write({'scheduled_date': scheduled_date})
+        pickings._autoconfirm_picking()
 
-        for picking in internos:
+        for picking, vals in zip(pickings, vals_list):
+            # set partner as follower
+            if vals.get('partner_id'):
+                if picking.location_id.usage == 'supplier' or picking.location_dest_id.usage == 'customer':
+                    picking.message_subscribe([vals.get('partner_id')])
+            if vals.get('picking_type_id'):
+                for move in picking.move_ids:
+                    if not move.description_picking:
+                        move.description_picking = move.product_id.with_context(lang=move._get_lang())._get_description(move.picking_id.picking_type_id)
+        return pickings
 
-            origen = picking.location_id
-            destino_logico = picking.location_dest_id
-            lineas = picking.move_ids_without_package
+    def write(self, vals):
+        if vals.get('picking_type_id') and any(picking.state != 'draft' for picking in self):
+            raise UserError(_("Changing the operation type of this record is forbidden at this point."))
+        # set partner as a follower and unfollow old partner
+        if vals.get('partner_id'):
+            for picking in self:
+                if picking.location_id.usage == 'supplier' or picking.location_dest_id.usage == 'customer':
+                    if picking.partner_id:
+                        picking.message_unsubscribe(picking.partner_id.ids)
+                    picking.message_subscribe([vals.get('partner_id')])
+        res = super(Picking, self).write(vals)
+        if vals.get('signature'):
+            for picking in self:
+                picking._attach_sign()
+        # Change locations of moves if those of the picking change
+        after_vals = {}
+        if vals.get('location_id'):
+            after_vals['location_id'] = vals['location_id']
+        if vals.get('location_dest_id'):
+            after_vals['location_dest_id'] = vals['location_dest_id']
+        if 'partner_id' in vals:
+            after_vals['partner_id'] = vals['partner_id']
+        if after_vals:
+            self.move_ids.filtered(lambda move: not move.scrapped).write(after_vals)
+        if vals.get('move_ids'):
+            self._autoconfirm_picking()
 
-            # Encontrar bodega destino desde location_dest_id
-            wh_dest = self._get_warehouse_from_location(destino_logico)
-            if not wh_dest:
-                raise Exception("No se pudo determinar la bodega destino desde la ubicación destino.")
-
-            # Buscar tipo Recepciones de esa bodega
-            tipo_recep = self.env['stock.picking.type'].search([
-                ('code', '=', 'incoming'),
-                ('name', '=', 'Recepciones'),
-                ('warehouse_id', '=', wh_dest.id),
-            ], limit=1)
-
-            if not tipo_recep:
-                raise Exception("No existe tipo de operación 'Recepciones' para la bodega destino.")
-
-            # ubicación origen de la recepción (debe ser proveedores)
-            ubicacion_proveedor = self.env.ref('stock.stock_location_suppliers')
-
-            # crear la recepción en estado confirmado
-            recepcion = self.env['stock.picking'].create({
-                'picking_type_id': tipo_recep.id,
-                'location_id': ubicacion_proveedor.id,   # origen de la recepción
-                'location_dest_id': tipo_recep.default_location_dest_id.id,
-                'state': 'confirmed',
-                'origin': picking.name,
-                'company_id': picking.company_id.id,
-                'partner_id': picking.partner_id.id,
-            })
-
-            # crear las líneas de la recepción con cantidad y quantity_done
-            for mov in lineas:
-                self.env['stock.move'].create({
-                    'picking_id': recepcion.id,
-                    'product_id': mov.product_id.id,
-                    'name': mov.name,
-                    'product_uom': mov.product_uom.id,
-                    'product_uom_qty': mov.product_uom_qty,
-                    'quantity_done': mov.product_uom_qty,
-                    'location_id': ubicacion_proveedor.id,              # origen
-                    'location_dest_id': tipo_recep.default_location_dest_id.id,  # destino
-                    'company_id': picking.company_id.id,
-                    'state': 'confirmed',
-                })
-
-            # Rebaja manual de stock en origen
-            Quant = self.env['stock.quant']
-            for mov in lineas:
-                quant = Quant.search([
-                    ('product_id', '=', mov.product_id.id),
-                    ('location_id', '=', origen.id),
-                    ('company_id', '=', picking.company_id.id),
-                ], limit=1)
-
-                if quant:
-                    quant.quantity -= mov.product_uom_qty
-                else:
-                    Quant.create({
-                        'product_id': mov.product_id.id,
-                        'location_id': origen.id,
-                        'quantity': -mov.product_uom_qty,
-                        'company_id': picking.company_id.id,
-                    })
-            # Cancelar movimientos internos para permitir borrado
-            (picking.move_ids_without_package | picking.move_ids).write({'state': 'cancel'})
-
-            # NO los borres, solo déjalos cancelados
-
-            # marcar el picking interno como realizado
-            picking.state = 'done'
-
-        # Validación normal para los pickings que no son internos
-        if otros:
-            return super(StockPicking, otros).button_validate()
-
-        return True
-
-    #partner_id se llena automáticamente con company_id.partner_id
-
-    @api.onchange('picking_type_id')
-    def _onchange_picking_type_set_partner(self):
-        if self.picking_type_id and self.picking_type_id.code == 'internal':
-            self.partner_id = self.company_id.partner_id.id
+        return res
