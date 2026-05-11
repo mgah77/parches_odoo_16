@@ -16,7 +16,7 @@ class Picking(models.Model):
                 if picking_type.code == 'outgoing':
                     origin = vals.get('origin')
                     
-                    so_number = origin.replace('SO', '')
+                    so_number = origin.replace('S', '')
                     
                     # Obtener el código del almacén (Ej: 'WH') o usar 'WH' por defecto
                     wh_code = picking_type.warehouse_id.code or 'WH'
@@ -30,24 +30,3 @@ class Picking(models.Model):
 
         # Llamamos al create original sin la lógica de secuencia dinámica que causaba el error
         return super().create(vals_list)
-
-    def write(self, vals):
-        if 'company_id' in vals:
-            for picking_type in self:
-                if picking_type.company_id.id != vals['company_id']:
-                    raise UserError(_("Changing the company of this record is forbidden at this point, you should rather archive it and create a new one."))
-        if 'sequence_code' in vals:
-            for picking_type in self:
-                if picking_type.warehouse_id:
-                    picking_type.sequence_id.sudo().write({
-                        'name': picking_type.warehouse_id.name + ' ' + _('Sequence') + ' ' + vals['sequence_code'],
-                        'prefix': picking_type.warehouse_id.code + '/' + vals['sequence_code'] + '/', 'padding': 5,
-                        'company_id': picking_type.warehouse_id.company_id.id,
-                    })
-                else:
-                    picking_type.sequence_id.sudo().write({
-                        'name': _('Sequence') + ' ' + vals['sequence_code'],
-                        'prefix': vals['sequence_code'], 'padding': 5,
-                        'company_id': picking_type.env.company.id,
-                    })
-        return super(PickingType, self).write(vals)
